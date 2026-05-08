@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jina Reader"
+  short_description: "Fetch readable web pages with Jina"
+  default_prompt: "Use $jina-reader to fetch this URL as clean Markdown."

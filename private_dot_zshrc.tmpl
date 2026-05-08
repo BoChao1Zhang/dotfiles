@@ -1,0 +1,161 @@
+# User configuration sourced by interactive shells.
+
+# -----------------
+# Zsh configuration
+# -----------------
+
+#
+# History
+#
+
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=10000
+SAVEHIST=10000
+
+setopt APPEND_HISTORY
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+
+#
+# Input/output
+#
+
+bindkey -e
+
+# Remove path separator from WORDCHARS so e.g. ^W deletes one path segment.
+WORDCHARS=${WORDCHARS//[\/]}
+
+setopt AUTO_CD
+
+# --------------------
+# Module configuration
+# --------------------
+
+# zsh-autosuggestions: skip per-precmd widget rebind (safe because
+# zsh-autosuggestions is the last module loaded in ~/.zimrc).
+ZSH_AUTOSUGGEST_MANUAL_REBIND=1
+
+# zsh-syntax-highlighting: enable main + brackets highlighters.
+ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)
+
+# Completion behavior (case-insensitive, menu select).
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' menu select
+
+# ------------------
+# Initialize modules
+# ------------------
+
+ZIM_HOME=${ZDOTDIR:-${HOME}}/.zim
+# Download zimfw plugin manager if missing.
+if [[ ! -e ${ZIM_HOME}/zimfw.zsh ]]; then
+  if (( ${+commands[curl]} )); then
+    curl -fsSL --create-dirs -o ${ZIM_HOME}/zimfw.zsh \
+        https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh
+  else
+    mkdir -p ${ZIM_HOME} && wget -nv -O ${ZIM_HOME}/zimfw.zsh \
+        https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh
+  fi
+fi
+# Install missing modules, and update ${ZIM_HOME}/init.zsh if missing or outdated.
+if [[ ! ${ZIM_HOME}/init.zsh -nt ${ZIM_CONFIG_FILE:-${ZDOTDIR:-${HOME}}/.zimrc} ]]; then
+  source ${ZIM_HOME}/zimfw.zsh init
+fi
+# Initialize modules.
+source ${ZIM_HOME}/init.zsh
+
+# ------------------
+# Post-init bindings
+# ------------------
+
+# history-substring-search widget bindings (must come after zimfw init).
+bindkey "${terminfo[kcuu1]}" history-substring-search-up
+bindkey "${terminfo[kcud1]}" history-substring-search-down
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey '^P' history-substring-search-up
+bindkey '^N' history-substring-search-down
+
+# ------------------
+# Environment / tools
+# ------------------
+
+export SHELL="/bin/zsh"
+
+export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git" 2>/dev/null'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+eval "$(zoxide init zsh)"
+eval "$(starship init zsh)"
+
+# ------------------
+# User helpers
+# ------------------
+
+# yazi: cd into directory chosen on exit.
+function yy() {
+  local tmp cwd
+  tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+  yazi --cwd-file="$tmp" "$@"
+  if [ -f "$tmp" ]; then
+    cwd="$(command cat -- "$tmp")"
+    if [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+      builtin cd -- "$cwd"
+    fi
+    rm -f -- "$tmp"
+  fi
+}
+
+alias lzg='lazygit'
+alias btm='btop'
+alias mdp='glow -p'
+alias cc-h3c='nohup xpra attach ssh://bc@h3c/100 >/tmp/xpra-h3c.log 2>&1 &!'
+
+proxy_on() {
+  export http_proxy="http://127.0.0.1:7897"
+  export https_proxy="http://127.0.0.1:7897"
+  export HTTP_PROXY="$http_proxy"
+  export HTTPS_PROXY="$https_proxy"
+  export all_proxy="socks5://127.0.0.1:7897"
+  export ALL_PROXY="$all_proxy"
+  export no_proxy="localhost,127.0.0.1,::1"
+  export NO_PROXY="$no_proxy"
+}
+
+proxy_off() {
+  unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+  unset all_proxy ALL_PROXY no_proxy NO_PROXY
+}
+
+proxy_on
+
+[ ! -f ~/.config/tmux/scripts/tmux_aliases.sh ] || source ~/.config/tmux/scripts/tmux_aliases.sh
+
+. "$HOME/.local/bin/env"
+
+# Hermes Agent — ensure ~/.local/bin is on PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Mistral OCR (used by ~/.claude/skills/learning-prereqs)
+export MISTRAL_API_KEY="{{ env "MISTRAL_API_KEY" }}"
+
+# Firecrawl (used by web-scraping skills + scripts)
+export FIRECRAWL_API_KEY="{{ env "FIRECRAWL_API_KEY" }}"
+
+# Jina (used by jina-mcp-server + Reader API)
+export JINA_API_KEY="{{ env "JINA_API_KEY" }}"
+export PATH="/Applications/Xpra.app/Contents/MacOS:$PATH"
+
+# lazyssh: strip proxy env. ALL_PROXY is the real culprit (Go's proxy.FromEnvironment
+# routes SSH dials through SOCKS5); HTTP(S)_PROXY stripped defensively for any HTTP calls.
+lazyssh() {
+  env -u ALL_PROXY -u all_proxy -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy command lazyssh "$@"
+}

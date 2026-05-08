@@ -1,0 +1,4 @@
+interface:
+  display_name: "SiYuan Sisyphus MCP"
+  short_description: "Control SiYuan notes through Sisyphus MCP"
+  default_prompt: "Use $siyuan-sisyphus-cli to inspect and update my SiYuan notes through the SiYuan Sisyphus MCP tools."

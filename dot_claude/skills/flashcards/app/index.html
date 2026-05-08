@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flashcards dev preview</title>
+  </head>
+  <body>
+    <div
+      id="fc-root"
+      data-side="back"
+      data-source="React + Markdown · 开发预览"
+    ></div>
+    <script type="text/markdown" id="fc-front">
+快速排序的**最坏时间复杂度**是多少？为什么？
+    </script>
+    <script type="text/markdown" id="fc-back">
+**O(n²)**——当 pivot 总是落在数组最值时，每轮只缩减 1 个元素。
+
+```python
+def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[0]                 # 固定 pivot 是最坏情况触发器
+    left  = [x for x in arr[1:] if x < pivot]
+    right = [x for x in arr[1:] if x >= pivot]
+    return quicksort(left) + [pivot] + quicksort(right)
+```
+
+数学：分治递推式 $T(n) = T(n-1) + O(n) = O(n^2)$。
+
+```mermaid
+flowchart LR
+  A[输入数组] --> B{选 pivot}
+  B -->|总是最值| C[最坏 O(n²)]
+  B -->|随机| D[期望 O(n log n)]
+```
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

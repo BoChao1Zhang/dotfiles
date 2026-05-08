@@ -1,0 +1,111 @@
+model_provider = "ai"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+disable_response_storage = true
+service_tier = "fast"
+approvals_reviewer = "user"
+approval_policy = "never"
+
+model_context_window = 4000000
+model_auto_compact_token_limit = 360000
+personality = "friendly"
+sandbox_mode = "danger-full-access"
+  
+[model_providers.ai]
+name = "ai"
+wire_api = "responses"
+requires_openai_auth = true
+base_url = "https://dmit.bcncp.org/v1"
+
+[mcp_servers]
+
+[mcp_servers.ankimcp]
+type = "stdio"
+command = "npx"
+args = ["-y", "@ankimcp/anki-mcp-server", "--stdio"]
+
+[mcp_servers.siyuan-sisyphus]
+type = "http"
+url = "http://127.0.0.1:36806/mcp"
+headers = { Authorization = "Bearer {{ env "SIYUAN_SISYPHUS_TOKEN" }}" }
+
+[mcp_servers.siyuan-sisyphus.http_headers]
+Authorization = "Bearer {{ env "SIYUAN_SISYPHUS_TOKEN" }}"
+
+[mcp_servers.Grok-search]
+type = "stdio"
+command = "uvx"
+args = ["--from", "git+https://github.com/GuDaStudio/GrokSearch@grok-with-tavily", "grok-search"]
+
+[mcp_servers.Grok-search.env]
+GROK_API_KEY = "{{ env "GROK_API_KEY" }}"
+GROK_API_URL = "https://api.x.ai/v1"
+TAVILY_API_KEY = "{{ env "TAVILY_API_KEY" }}"
+TAVILY_API_URL = "https://api.tavily.com"
+
+[projects."{{ .chezmoi.homeDir }}"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/codex/research_agent"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-06/skill-installer-hatch-pet"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-06/m"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-06/20260506154417-752aa5j-agent-a"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-06/20260506154417-752aa5j-agentb"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-06/siyuan-mcp-20260506154417-752aa5j-agent-a"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-06/siyuan-20260506154417-752aa5j-agentb"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-08/learning-prereqs-users-macbook-cc-switch"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-08/learning-prereqs-users-macbook-cc-switch-2"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-08/siyuan-sisyphus-cli-users-macbook-codex"]
+trust_level = "trusted"
+
+[projects."{{ .chezmoi.homeDir }}/Documents/Codex/2026-05-09/create-dotfile-chezmoi-codex-claude-tmux"]
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[notice]
+hide_full_access_warning = true
+
+[marketplaces.openai-bundled]
+last_updated = "2026-05-08T05:46:23Z"
+source_type = "local"
+source = "{{ .chezmoi.homeDir }}/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-05-07T12:24:07Z"
+source_type = "local"
+source = "{{ .chezmoi.homeDir }}/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."browser-use@openai-bundled"]
+enabled = true

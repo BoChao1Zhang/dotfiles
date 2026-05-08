@@ -1,0 +1,26 @@
+{
+  "skill_name": "learning-prereqs",
+  "evals": [
+    {
+      "id": 1,
+      "name": "ppo-paper-rl-math-gap",
+      "prompt": "我想读 PPO 那篇原论文（Proximal Policy Optimization Algorithms, Schulman 2017, https://arxiv.org/abs/1707.06347）但是 RL 背景一般，看到 importance ratio 就开始懵，KL 散度只记得是个 \"距离\"，GAE 完全没听过。帮我处理下，我想真正能读懂这篇。",
+      "expected_output": "Quiz first (3-9 mid-hard questions covering importance ratio mechanics, KL forward/reverse, advantage / GAE, trust region, policy gradient theorem). Then 1 main brief (and possibly 1-2 supplementary briefs for clearly-cold sub-areas) published under the SiYuan /Learning Prereqs hub, embedding or placeholder-linking any figures Mistral OCR pulled from the paper plus mermaid/matplotlib where useful. Does NOT auto-invoke the flashcards skill.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "cuda-sm-warp-architecture-gap",
+      "prompt": "我在跟着 NVIDIA 官方的 CUDA C++ Programming Guide 学 CUDA，看到第 4 章 Hardware Implementation 一直懵：SM 是什么、warp 为啥是 32、block 怎么分配到 SM 上、occupancy 又是个啥、为啥说 warp divergence 会让性能掉一半。我对 CPU 多线程很熟但 GPU 这套抽象完全转不过来。帮我把这块前置补上，我再回去读原文。",
+      "expected_output": "Diagnostic quiz (5-7 questions) probing SIMT, warp size, occupancy bottleneck identification, coalesced access, __syncthreads in divergent branches. One main brief explaining the hardware → grid/block/warp/thread mapping, published to SiYuan under /Learning Prereqs with mermaid for the hierarchy diagram and matplotlib for occupancy or roofline if useful. Does NOT auto-invoke flashcards.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "math-textbook-unfamiliar-lemma",
+      "prompt": "我在读概率论教材里关于集中不等式那一章，证明 SubGaussian 随机变量的尾界时作者写 \"by a standard Chernoff argument and noting that ψ_X(λ) ≤ λ²σ²/2 for sub-Gaussian X\"，然后两步就跳到结论。Chernoff 那步我大概知道是 Markov 配 e^λX，但 ψ 这个函数是啥、为啥 sub-Gaussian 就有这个 bound、跟我之前学的 Hoeffding 怎么对上，全对不上。帮我把这个推导背后的引理补齐。",
+      "expected_output": "Quiz (3-5 questions) on Markov, Chernoff trick, MGF / cumulant-generating function definition, sub-Gaussian definition, link to Hoeffding. One main brief published to SiYuan under /Learning Prereqs, building from Markov → Chernoff → MGF → ψ_X definition → sub-Gaussian property → bound. KaTeX math, possibly a small matplotlib plot of MGF vs. quadratic envelope. Does NOT auto-invoke flashcards.",
+      "files": []
+    }
+  ]
+}

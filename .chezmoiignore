@@ -1,0 +1,6 @@
+/README.md
+/docs/**
+/scripts/**
+/secrets.example.env
+/.gitignore
+

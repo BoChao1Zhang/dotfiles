@@ -1,0 +1,23 @@
+.DS_Store
+.env
+secrets.env
+*.tmp
+*.bak
+
+# Never commit live authentication or runtime state.
+dot_codex/auth.json
+dot_codex/history.jsonl
+dot_codex/session_index.jsonl
+dot_codex/log/**
+dot_codex/cache/**
+dot_codex/archived_sessions/**
+dot_codex/state_*.sqlite*
+dot_codex/logs_*.sqlite*
+dot_claude/history.jsonl
+dot_claude/projects/**
+dot_claude/sessions/**
+dot_claude/session-env/**
+dot_claude/cache/**
+dot_claude/backups/**
+dot_claude/file-history/**
+

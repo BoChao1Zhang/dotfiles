@@ -1,0 +1,23 @@
+<div
+  id="fc-root"
+  data-side="front"
+  data-source="{{Source}}"
+></div>
+<script type="text/markdown" id="fc-front">{{Front}}</script>
+<script type="text/markdown" id="fc-back"></script>
+<script>
+(function () {
+  if (!document.getElementById("fc-css")) {
+    var l = document.createElement("link");
+    l.id = "fc-css";
+    l.rel = "stylesheet";
+    l.href = "_flashcards.css";
+    document.head.appendChild(l);
+  }
+  if (window.__fc__) { window.__fc__.mount(); return; }
+  var s = document.createElement("script");
+  s.type = "module";
+  s.src = "_flashcards.js";
+  document.head.appendChild(s);
+})();
+</script>

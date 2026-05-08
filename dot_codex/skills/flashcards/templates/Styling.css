@@ -1,0 +1,20 @@
+/* Anki-side CSS: pre-mount placeholder + body backdrop.
+ * The full Tokyo Night theme ships in _flashcards.css (loaded by the bundle). */
+
+.card {
+  background: #1a1b26;
+  color: #c0caf5;
+  font-family:
+    "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont,
+    "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+
+#fc-root:empty::before {
+  content: "rendering…";
+  display: block;
+  padding: 2rem;
+  text-align: center;
+  font-style: italic;
+  color: #565f89;
+  opacity: 0.7;
+}

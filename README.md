@@ -42,7 +42,18 @@ chezmoi apply
 
 ## Secrets
 
-Real tokens are not committed. The recommended sync flow is an age-encrypted env file; see `docs/token-sync.md`.
+Real tokens are not committed. The recommended sync flow is a password-encrypted age file; see `docs/token-sync.md`.
+
+Create or update the encrypted token file:
+
+```sh
+./scripts/secrets-edit.sh
+git add secrets/secrets.env.age
+git commit -m "Update encrypted tokens"
+git push
+```
+
+On a new machine, decrypt it by entering the same password:
 
 ```sh
 ./scripts/secrets-install.sh

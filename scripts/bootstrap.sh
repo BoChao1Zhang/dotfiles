@@ -8,6 +8,10 @@ has() {
   command -v "$1" >/dev/null 2>&1
 }
 
+toml_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 detect_platform() {
   local kernel distro
   kernel="$(uname -s 2>/dev/null || printf unknown)"
@@ -49,11 +53,38 @@ install_chezmoi_official() {
   fi
 }
 
+configure_chezmoi_source() {
+  local config_home config_file escaped_source
+
+  config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+  config_file="${CHEZMOI_CONFIG_FILE:-$config_home/chezmoi/chezmoi.toml}"
+  escaped_source="$(toml_escape "$repo_root")"
+
+  if [[ ! -e "$config_file" ]]; then
+    mkdir -p -- "$(dirname -- "$config_file")"
+    printf 'sourceDir = "%s"\n' "$escaped_source" > "$config_file"
+    printf 'Configured chezmoi sourceDir in %s\n' "$config_file"
+    return
+  fi
+
+  if grep -Eq '^[[:space:]]*sourceDir[[:space:]]*=' "$config_file"; then
+    printf 'Using existing chezmoi config: %s\n' "$config_file"
+    return
+  fi
+
+  {
+    printf '\n'
+    printf 'sourceDir = "%s"\n' "$escaped_source"
+  } >> "$config_file"
+  printf 'Added chezmoi sourceDir to %s\n' "$config_file"
+}
+
 if ! command -v chezmoi >/dev/null 2>&1; then
   install_chezmoi_official
 fi
 
-chezmoi init --source "$repo_root"
-chezmoi diff
+configure_chezmoi_source
 
-printf '\nReview the diff above. Apply with:\n  chezmoi apply\n'
+chezmoi --source "$repo_root" diff
+
+printf '\nReview the diff above. Apply with:\n  chezmoi --source %q apply\n' "$repo_root"

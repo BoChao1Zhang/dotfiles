@@ -19,7 +19,7 @@ cd /path/to/dotfiles
 ./scripts/bootstrap.sh
 ```
 
-`bootstrap.sh` installs chezmoi with the official installer if needed, places it in `~/.local/bin` by default, initializes this directory as the chezmoi source, and shows a diff. Override the install directory with `CHEZMOI_BIN_DIR=/some/bin` when needed. After reviewing:
+`bootstrap.sh` installs chezmoi with the official installer if needed, places it in `~/.local/bin` by default, records this directory as the chezmoi source, and shows a diff. Override the install directory with `CHEZMOI_BIN_DIR=/some/bin` when needed. After reviewing:
 
 ```sh
 chezmoi apply

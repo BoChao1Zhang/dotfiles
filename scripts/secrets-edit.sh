@@ -7,6 +7,7 @@ identity="${DOTFILES_AGE_IDENTITY:-$HOME/.config/dotfiles/age-key.txt}"
 recipient_file="${DOTFILES_AGE_RECIPIENT_FILE:-$repo_root/secrets/age-recipient.txt}"
 mode="${DOTFILES_SECRETS_MODE:-auto}"
 editor="${EDITOR:-vi}"
+secret_tmp=""
 
 usage() {
   cat <<'EOF'
@@ -158,7 +159,8 @@ main() {
 
   mkdir -p -- "$(dirname -- "$encrypted")"
   tmp="$(mktemp)"
-  trap 'rm -f -- "$tmp" "${encrypted}.tmp"' EXIT
+  secret_tmp="$tmp"
+  trap 'rm -f -- "$secret_tmp" "${encrypted}.tmp"' EXIT
   chmod 600 "$tmp"
 
   printf 'Secrets encryption mode: %s\n' "$selected_mode"
@@ -171,4 +173,3 @@ main() {
 }
 
 main "$@"
-

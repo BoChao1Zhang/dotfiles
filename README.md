@@ -44,14 +44,16 @@ chezmoi apply
 
 Real tokens are not committed. The recommended sync flow is a password-encrypted age file; see `docs/token-sync.md`.
 
-Create or update the encrypted token file:
+Create or update the encrypted token file by scanning local configs:
 
 ```sh
-./scripts/secrets-edit.sh
+./scripts/secrets-capture.sh
 git add secrets/secrets.env.age
 git commit -m "Update encrypted tokens"
 git push
 ```
+
+Use `./scripts/secrets-edit.sh` when you want to edit the env file manually.
 
 On a new machine, decrypt it by entering the same password:
 
@@ -77,7 +79,8 @@ After applying the zsh config, two helper commands are available:
 
 ```sh
 dotup "Update dotfiles from this machine"
+dotup --tokens "Update dotfiles and encrypted tokens"
 dotdown
 ```
 
-`dotup` refreshes from `$HOME`, scans for plaintext tokens, commits, and pushes. `dotdown` pulls, decrypts token env if present, bootstraps chezmoi, and applies the dotfiles.
+`dotup` refreshes from `$HOME`, scans for plaintext tokens, commits, and pushes. `dotup --tokens` also captures known local tokens and encrypts them before committing. `dotdown` pulls, decrypts token env if present, bootstraps chezmoi, and applies the dotfiles.

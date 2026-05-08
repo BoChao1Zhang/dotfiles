@@ -12,13 +12,25 @@ The scripts use `age` passphrase encryption by default. There is no custom passw
 
 ## First Machine
 
-Create and encrypt your token file:
+Create and encrypt your token file by scanning the current machine:
+
+```sh
+./scripts/secrets-capture.sh
+```
+
+The script scans known local files, shows which variables were found, then asks you for one password and writes `secrets/secrets.env.age`. Token values are not printed.
+
+Scanned sources:
+
+- `~/.zshrc`: `MISTRAL_API_KEY`, `FIRECRAWL_API_KEY`, `JINA_API_KEY`
+- `~/.codex/config.toml`: `SIYUAN_SISYPHUS_TOKEN`, `GROK_API_KEY`, `TAVILY_API_KEY`
+- `~/.claude/providers/*.json`: Claude provider API keys
+
+If you need to add or correct a token manually, use:
 
 ```sh
 ./scripts/secrets-edit.sh
 ```
-
-The script opens `secrets.example.env` in `$EDITOR`. Fill in the real values. When the editor exits, `age` asks you to create a password and writes `secrets/secrets.env.age`.
 
 Commit the encrypted file:
 
@@ -50,7 +62,7 @@ chezmoi --source "$PWD" apply
 ## Updating Tokens
 
 ```sh
-./scripts/secrets-edit.sh
+./scripts/secrets-capture.sh
 git add secrets/secrets.env.age
 git commit -m "Update encrypted tokens"
 git push

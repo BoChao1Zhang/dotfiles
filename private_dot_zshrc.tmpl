@@ -171,12 +171,19 @@ _dotfiles_repo() {
 }
 
 dotup() {
-  local repo msg
+  local repo msg capture_tokens=0
   repo="$(_dotfiles_repo)" || return
+  if [ "${1:-}" = "--tokens" ]; then
+    capture_tokens=1
+    shift
+  fi
   msg="${1:-Update dotfiles from $(hostname -s 2>/dev/null || hostname)}"
 
   (
     cd "$repo" || exit 1
+    if [ "$capture_tokens" = 1 ]; then
+      ./scripts/secrets-capture.sh
+    fi
     ./scripts/refresh-from-home.sh
     ./scripts/scan-secrets.sh
     git add -A

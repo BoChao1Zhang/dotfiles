@@ -6,6 +6,7 @@ encrypted="${DOTFILES_SECRETS_FILE:-$repo_root/secrets/secrets.env.age}"
 identity="${DOTFILES_AGE_IDENTITY:-$HOME/.config/dotfiles/age-key.txt}"
 output="${DOTFILES_SECRETS_ENV:-$HOME/.config/dotfiles/secrets.env}"
 mode="${DOTFILES_SECRETS_MODE:-auto}"
+secret_tmp=""
 
 usage() {
   cat <<'EOF'
@@ -113,7 +114,8 @@ main() {
 
   mkdir -p -- "$(dirname -- "$output")"
   tmp="${output}.tmp"
-  trap 'rm -f -- "$tmp"' EXIT
+  secret_tmp="$tmp"
+  trap 'rm -f -- "$secret_tmp"' EXIT
 
   umask 077
   decrypt_to_tmp "$selected_mode" "$tmp"
@@ -125,4 +127,3 @@ main() {
 }
 
 main "$@"
-

@@ -72,3 +72,12 @@ git status
 ```
 
 `scan-secrets.sh` exits with matches if it sees likely live tokens.
+
+After applying the zsh config, two helper commands are available:
+
+```sh
+dotup "Update dotfiles from this machine"
+dotdown
+```
+
+`dotup` refreshes from `$HOME`, scans for plaintext tokens, commits, and pushes. `dotdown` pulls, decrypts token env if present, bootstraps chezmoi, and applies the dotfiles.

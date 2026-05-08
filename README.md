@@ -16,8 +16,11 @@ Chezmoi source repository for Codex, Claude, tmux, Neovim, and zsh.
 
 ```sh
 cd /path/to/dotfiles
+./scripts/install-dev-tools.sh
 ./scripts/bootstrap.sh
 ```
+
+`install-dev-tools.sh` supports macOS and Ubuntu. It installs Node.js through nvm, Codex CLI, Claude Code, Neovim, tmux, zsh, age, and supporting command-line tools. On Ubuntu it installs Neovim from the official release archive, builds tmux from the latest release tarball, and builds zsh from the upstream release archive. It does not automatically change your login shell.
 
 `bootstrap.sh` installs chezmoi with the official installer if needed, places it in `~/.local/bin` by default, records this directory as the chezmoi source, and shows a diff. Override the install directory with `CHEZMOI_BIN_DIR=/some/bin` when needed. After reviewing:
 
@@ -27,14 +30,15 @@ chezmoi apply
 
 ## Secrets
 
-Real tokens are not committed. The templates expect these environment variables when you apply:
+Real tokens are not committed. The recommended sync flow is an age-encrypted env file; see `docs/token-sync.md`.
 
 ```sh
-source ./secrets.example.env
-chezmoi apply
+./scripts/secrets-install.sh
+./scripts/bootstrap.sh
+chezmoi --source "$PWD" apply
 ```
 
-Fill the variables from your password manager or current machine first. Keep the real file private and untracked.
+`bootstrap.sh` sources `~/.config/dotfiles/secrets.env` when present, so Codex and Claude templates can render token-backed config.
 
 ## Refresh From This Machine
 

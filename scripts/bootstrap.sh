@@ -8,6 +8,23 @@ has() {
   command -v "$1" >/dev/null 2>&1
 }
 
+load_secrets_env() {
+  local secrets_env
+  secrets_env="${DOTFILES_SECRETS_ENV:-$HOME/.config/dotfiles/secrets.env}"
+
+  if [[ ! -r "$secrets_env" ]]; then
+    printf 'No local secrets env found at %s\n' "$secrets_env"
+    printf 'If templates need tokens, run ./scripts/secrets-install.sh first or export the variables manually.\n'
+    return
+  fi
+
+  set -a
+  # shellcheck disable=SC1090
+  . "$secrets_env"
+  set +a
+  printf 'Loaded local secrets env from %s\n' "$secrets_env"
+}
+
 toml_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
@@ -84,6 +101,7 @@ if ! command -v chezmoi >/dev/null 2>&1; then
 fi
 
 configure_chezmoi_source
+load_secrets_env
 
 chezmoi --source "$repo_root" diff
 

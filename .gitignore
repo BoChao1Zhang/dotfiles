@@ -4,6 +4,12 @@ secrets.env
 *.tmp
 *.bak
 
+# Plaintext secrets are generated locally; commit only encrypted copies.
+secrets/*.env
+secrets/*.env.tmp
+!secrets/*.env.age
+!secrets/.gitkeep
+
 # Never commit live authentication or runtime state.
 dot_codex/auth.json
 dot_codex/history.jsonl
@@ -20,4 +26,3 @@ dot_claude/session-env/**
 dot_claude/cache/**
 dot_claude/backups/**
 dot_claude/file-history/**
-

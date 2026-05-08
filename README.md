@@ -22,6 +22,18 @@ cd /path/to/dotfiles
 
 `install-dev-tools.sh` supports macOS and Ubuntu. It installs Node.js through nvm, Codex CLI, Claude Code, Neovim, tmux, zsh, age, and supporting command-line tools. On Ubuntu it installs Neovim from the official release archive, builds tmux from the latest release tarball, and builds zsh from the upstream release archive. It does not automatically change your login shell.
 
+To set zsh as the login shell explicitly:
+
+```sh
+./scripts/install-dev-tools.sh --set-default-shell
+```
+
+When running as `root` but targeting another user:
+
+```sh
+./scripts/install-dev-tools.sh --set-default-shell --target-user <username>
+```
+
 `bootstrap.sh` installs chezmoi with the official installer if needed, places it in `~/.local/bin` by default, records this directory as the chezmoi source, and shows a diff. Override the install directory with `CHEZMOI_BIN_DIR=/some/bin` when needed. After reviewing:
 
 ```sh

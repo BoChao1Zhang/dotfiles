@@ -3,6 +3,65 @@ set -euo pipefail
 
 local_bin="${LOCAL_BIN:-$HOME/.local/bin}"
 nvm_dir="${NVM_DIR:-$HOME/.nvm}"
+set_default_shell="${SET_DEFAULT_ZSH:-0}"
+target_user="${TARGET_USER:-}"
+zsh_path_override="${ZSH_PATH:-}"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/install-dev-tools.sh [options]
+
+Options:
+  --set-default-shell     Set the installed zsh as the target user's login shell.
+  --target-user USER      User whose login shell should be changed.
+                          Defaults to SUDO_USER when running via sudo, otherwise current user.
+  --zsh-path PATH         Explicit zsh path to set as login shell.
+  -h, --help              Show this help.
+
+Environment:
+  SET_DEFAULT_ZSH=1       Same as --set-default-shell.
+  TARGET_USER=USER        Same as --target-user.
+  ZSH_PATH=PATH           Same as --zsh-path.
+  LOCAL_BIN=PATH          Defaults to ~/.local/bin.
+  NVM_DIR=PATH            Defaults to ~/.nvm.
+EOF
+}
+
+parse_args() {
+  while (($#)); do
+    case "$1" in
+      --set-default-shell)
+        set_default_shell=1
+        ;;
+      --target-user)
+        shift
+        [[ $# -gt 0 ]] || {
+          printf '--target-user requires a value.\n' >&2
+          exit 1
+        }
+        target_user="$1"
+        ;;
+      --zsh-path)
+        shift
+        [[ $# -gt 0 ]] || {
+          printf '--zsh-path requires a value.\n' >&2
+          exit 1
+        }
+        zsh_path_override="$1"
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        printf 'Unknown option: %s\n\n' "$1" >&2
+        usage >&2
+        exit 1
+        ;;
+    esac
+    shift
+  done
+}
 
 has() {
   command -v "$1" >/dev/null 2>&1
@@ -193,6 +252,110 @@ install_zsh_linux_latest() {
   rm -rf "$tmp"
 }
 
+truthy() {
+  case "${1:-}" in
+    1 | true | TRUE | yes | YES | y | Y | on | ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_target_user() {
+  if [[ -n "$target_user" ]]; then
+    printf '%s' "$target_user"
+    return
+  fi
+
+  if [[ "${EUID:-$(id -u)}" -eq 0 && -n "${SUDO_USER:-}" && "${SUDO_USER:-}" != "root" ]]; then
+    printf '%s' "$SUDO_USER"
+    return
+  fi
+
+  id -un
+}
+
+resolve_zsh_path() {
+  local os path
+  os="$1"
+
+  if [[ -n "$zsh_path_override" ]]; then
+    [[ -x "$zsh_path_override" ]] || {
+      printf 'Configured zsh path is not executable: %s\n' "$zsh_path_override" >&2
+      exit 1
+    }
+    printf '%s' "$zsh_path_override"
+    return
+  fi
+
+  if [[ "$os" == "macos" && -n "${HOMEBREW_PREFIX:-}" ]]; then
+    path="$HOMEBREW_PREFIX/bin/zsh"
+    [[ -x "$path" ]] && {
+      printf '%s' "$path"
+      return
+    }
+  fi
+
+  if [[ "$os" == "ubuntu" && -x /usr/local/bin/zsh ]]; then
+    printf '/usr/local/bin/zsh'
+    return
+  fi
+
+  path="$(command -v zsh || true)"
+  [[ -n "$path" && -x "$path" ]] || {
+    printf 'zsh is not installed or not executable.\n' >&2
+    exit 1
+  }
+  printf '%s' "$path"
+}
+
+ensure_shell_registered() {
+  local shell_path
+  shell_path="$1"
+
+  if grep -Fxq -- "$shell_path" /etc/shells 2>/dev/null; then
+    return
+  fi
+
+  printf 'Registering %s in /etc/shells...\n' "$shell_path"
+  printf '%s\n' "$shell_path" | as_root tee -a /etc/shells >/dev/null
+}
+
+current_login_shell() {
+  local user os
+  user="$1"
+  os="$2"
+
+  if [[ "$os" == "macos" ]] && has dscl; then
+    dscl . -read "/Users/$user" UserShell 2>/dev/null | awk '{print $2}'
+    return
+  fi
+
+  if has getent; then
+    getent passwd "$user" | awk -F: '{print $7}'
+    return
+  fi
+
+  awk -F: -v user="$user" '$1 == user {print $7}' /etc/passwd 2>/dev/null || true
+}
+
+set_zsh_as_default_shell() {
+  local os user shell_path current_shell
+  os="$1"
+  user="$(resolve_target_user)"
+  shell_path="$(resolve_zsh_path "$os")"
+  current_shell="$(current_login_shell "$user" "$os")"
+
+  ensure_shell_registered "$shell_path"
+
+  if [[ "$current_shell" == "$shell_path" ]]; then
+    printf 'Default shell already set for %s: %s\n' "$user" "$shell_path"
+    return
+  fi
+
+  printf 'Setting default shell for %s to %s...\n' "$user" "$shell_path"
+  as_root chsh -s "$shell_path" "$user"
+  printf 'Default shell updated. Start a new login session to use it.\n'
+}
+
 print_versions() {
   printf '\nInstalled versions:\n'
   node --version 2>/dev/null || true
@@ -207,6 +370,7 @@ print_versions() {
 
 main() {
   local os
+  parse_args "$@"
   os="$(detect_os)"
 
   export PATH="$local_bin:$PATH"
@@ -231,12 +395,16 @@ main() {
   install_npm_tools
   print_versions
 
+  if truthy "$set_default_shell"; then
+    set_zsh_as_default_shell "$os"
+  fi
+
   printf '\nDone. Restart your shell, or run:\n'
   printf '  export PATH="%s:$PATH"\n' "$local_bin"
   printf '  export NVM_DIR="%s"\n' "$nvm_dir"
   printf '  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"\n'
-  printf '\nTo make the newly installed zsh your login shell, run manually after checking /usr/local/bin/zsh:\n'
-  printf '  chsh -s /usr/local/bin/zsh\n'
+  printf '\nTo set zsh as your login shell during install, rerun with:\n'
+  printf '  ./scripts/install-dev-tools.sh --set-default-shell\n'
 }
 
 main "$@"

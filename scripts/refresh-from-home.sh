@@ -345,11 +345,22 @@ encode_literal_skill_scripts() {
 
   for root in "$repo_root/dot_claude/skills" "$repo_root/dot_codex/skills"; do
     [[ -d "$root" ]] || continue
-    find "$root" -type f \( -name 'run_*' -o -name 'once_*' \) -print0 |
+    find "$root" -type f -print0 |
       while IFS= read -r -d '' path; do
         local dir base target
         dir="$(dirname -- "$path")"
         base="$(basename -- "$path")"
+        case "$base" in
+          literal_*|executable_literal_*)
+            continue
+            ;;
+          after_*|before_*|create_*|empty_*|encrypted_*|exact_*|executable_*|external_*|modify_*|once_*|onchange_*|private_*|readonly_*|remove_*|run_*|symlink_*|template_*)
+            ;;
+          *)
+            continue
+            ;;
+        esac
+
         if [[ -x "$path" ]]; then
           target="$dir/executable_literal_$base"
         else
@@ -359,6 +370,25 @@ encode_literal_skill_scripts() {
         mv -f -- "$path" "$target"
       done
   done
+}
+
+encode_tmux_executable_scripts() {
+  local root="$repo_root/dot_config/tmux/scripts"
+  [[ -d "$root" ]] || return 0
+
+  find "$root" -maxdepth 1 -type f -print0 |
+    while IFS= read -r -d '' path; do
+      local dir base first target
+      dir="$(dirname -- "$path")"
+      base="$(basename -- "$path")"
+      [[ "$base" == executable_* ]] && continue
+
+      IFS= read -r first < "$path" || first=""
+      [[ "$first" == '#!'* ]] || continue
+
+      target="$dir/executable_$base"
+      mv -f -- "$path" "$target"
+    done
 }
 
 need perl
@@ -433,6 +463,7 @@ copy_tree "$src_home/.codex/skills" "$repo_root/dot_codex/skills" \
 
 encode_hidden_files
 encode_literal_skill_scripts
+encode_tmux_executable_scripts
 write_skill_manifest
 
 printf 'Refreshed chezmoi source at %s\n' "$repo_root"

@@ -20,7 +20,7 @@ cd /path/to/dotfiles
 ./scripts/bootstrap.sh
 ```
 
-`install-dev-tools.sh` supports macOS and Ubuntu. On macOS it uses Homebrew plus nvm. On Ubuntu it does not use apt by default: it installs micromamba in `~/.local/bin` and creates a user-local conda-forge toolchain at `~/.local/share/dotfiles/toolchain` for Node.js, Neovim, tmux, zsh, age, zoxide, starship, and supporting command-line tools. It is idempotent by default: existing tools are skipped and npm CLIs are installed only when their commands are missing. Use `--upgrade` when you explicitly want to refresh already-installed tools. It does not automatically change your login shell.
+`install-dev-tools.sh` supports macOS and Ubuntu. On macOS it uses Homebrew plus nvm. On Ubuntu it does not use apt by default: it installs micromamba in `~/.local/bin`, creates a user-local conda-forge toolchain at `~/.local/share/dotfiles/toolchain` for Node.js, tmux, zsh, age, zoxide, starship, and supporting command-line tools, and installs the official Neovim release into `~/.local/share/dotfiles/neovim` when needed. It is idempotent by default: existing tools are skipped and npm CLIs are installed only when their commands are missing. Use `--upgrade` when you explicitly want to refresh already-installed tools. It does not automatically change your login shell.
 
 To set zsh as the login shell explicitly:
 
@@ -40,7 +40,7 @@ When running as `root` but targeting another user:
 chezmoi apply
 ```
 
-Both `install-dev-tools.sh` and `bootstrap.sh` write `~/.config/dotfiles/shell-env.sh` and connect it to zsh startup files so the user-local toolchain and `~/.local/bin` tools are available as plain commands. In an interactive terminal, `install-dev-tools.sh` starts a fresh zsh login shell at the end; pass `--no-reload-shell` to disable that behavior.
+Both `install-dev-tools.sh` and `bootstrap.sh` write `~/.config/dotfiles/shell-env.sh` and connect it to zsh, bash, and profile startup files so the user-local toolchain and `~/.local/bin` tools are available as plain commands. In an interactive terminal, `install-dev-tools.sh` starts a fresh zsh login shell at the end; pass `--no-reload-shell` to disable that behavior.
 
 If a command such as `nvim` is missing on Ubuntu, repair the user-local toolchain with:
 

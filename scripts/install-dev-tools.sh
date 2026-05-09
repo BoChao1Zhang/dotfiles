@@ -6,6 +6,7 @@ nvm_dir="${NVM_DIR:-$HOME/.nvm}"
 tool_prefix="${DOTFILES_TOOL_PREFIX:-$HOME/.local/share/dotfiles/toolchain}"
 tool_bin="$tool_prefix/bin"
 mamba_root="${MAMBA_ROOT_PREFIX:-$HOME/.local/share/micromamba}"
+nvim_prefix="${NVIM_PREFIX:-$HOME/.local/share/dotfiles/neovim}"
 set_default_shell="${SET_DEFAULT_ZSH:-0}"
 target_user="${TARGET_USER:-}"
 zsh_path_override="${ZSH_PATH:-}"
@@ -37,6 +38,7 @@ Environment:
   DOTFILES_TOOL_PREFIX=PATH
                           Ubuntu user-local toolchain prefix.
   MAMBA_ROOT_PREFIX=PATH  micromamba root prefix.
+  NVIM_PREFIX=PATH        Ubuntu official Neovim install prefix.
 EOF
 }
 
@@ -171,7 +173,6 @@ install_ubuntu_user_toolchain() {
     fzf
     git
     jq
-    neovim
     nodejs
     python
     ripgrep
@@ -185,9 +186,8 @@ install_ubuntu_user_toolchain() {
 
   install_micromamba
 
-  for pkg in age curl fzf git jq nvim node npm python rg starship tmux wget zoxide zsh; do
+  for pkg in age curl fzf git jq node npm python rg starship tmux wget zoxide zsh; do
     case "$pkg" in
-      nvim) [[ -x "$tool_bin/nvim" ]] || missing+=("neovim") ;;
       node) [[ -x "$tool_bin/node" ]] || missing+=("nodejs") ;;
       npm) [[ -x "$tool_bin/npm" ]] || missing+=("nodejs") ;;
       python) [[ -x "$tool_bin/python" ]] || missing+=("python") ;;
@@ -211,8 +211,68 @@ install_ubuntu_user_toolchain() {
   printf 'Ubuntu user-local toolchain already installed at %s\n' "$tool_prefix"
 }
 
+install_ubuntu_neovim() {
+  local tag asset url tmp archive nvim_path
+  local assets=()
+
+  if [[ -x "$tool_bin/nvim" || -x "$local_bin/nvim" ]] && ! truthy "$upgrade_tools"; then
+    return
+  fi
+
+  case "$(uname -m)" in
+    x86_64 | amd64) assets=(nvim-linux-x86_64.tar.gz nvim-linux64.tar.gz) ;;
+    aarch64 | arm64) assets=(nvim-linux-arm64.tar.gz) ;;
+    *)
+      printf 'Unsupported Ubuntu architecture for official Neovim: %s\n' "$(uname -m)" >&2
+      exit 1
+      ;;
+  esac
+
+  tag="$(github_latest_tag neovim/neovim)"
+  tmp="$(mktemp -d)"
+  archive="$tmp/nvim.tar.gz"
+
+  mkdir -p "$local_bin" "$(dirname -- "$nvim_prefix")"
+
+  for asset in "${assets[@]}"; do
+    url="https://github.com/neovim/neovim/releases/download/${tag}/${asset}"
+    printf 'Installing official Neovim %s from %s...\n' "$tag" "$asset"
+    if has curl; then
+      curl -fsSL "$url" -o "$archive" && break
+    elif has wget; then
+      wget -qO "$archive" "$url" && break
+    else
+      printf 'Official Neovim install needs curl or wget.\n' >&2
+      rm -rf "$tmp"
+      exit 1
+    fi
+    rm -f "$archive"
+  done
+
+  if [[ ! -s "$archive" ]]; then
+    printf 'Could not download an official Neovim tarball.\n' >&2
+    rm -rf "$tmp"
+    exit 1
+  fi
+
+  mkdir -p "$tmp/extract"
+  tar -xzf "$archive" -C "$tmp/extract"
+  nvim_path="$(find "$tmp/extract" -mindepth 2 -maxdepth 4 -type f -path '*/bin/nvim' -print -quit)"
+  if [[ -z "$nvim_path" || ! -x "$nvim_path" ]]; then
+    printf 'Downloaded Neovim archive did not contain an executable bin/nvim.\n' >&2
+    rm -rf "$tmp"
+    exit 1
+  fi
+
+  rm -rf "$nvim_prefix"
+  mv "${nvim_path%/bin/nvim}" "$nvim_prefix"
+  ln -sfn "$nvim_prefix/bin/nvim" "$local_bin/nvim"
+  rm -rf "$tmp"
+  hash -r
+}
+
 install_micromamba() {
-  local arch platform tmp archive
+  local platform tmp archive
 
   if [[ -x "$local_bin/micromamba" ]] && ! truthy "$upgrade_tools"; then
     return
@@ -396,8 +456,19 @@ EOF
   # shellcheck disable=SC1090
   . "$env_file"
 
-  for rc_file in "$HOME/.zshrc" "$HOME/.zprofile"; do
+  for rc_file in "$HOME/.zshrc" "$HOME/.zprofile" "$HOME/.bashrc" "$HOME/.profile"; do
     [[ -e "$rc_file" ]] || touch "$rc_file"
+    if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$rc_file" 2>/dev/null; then
+      {
+        printf '\n'
+        printf '# Dotfiles tool environment\n'
+        printf '[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"\n'
+      } >> "$rc_file"
+    fi
+  done
+
+  for rc_file in "$HOME/.bash_profile" "$HOME/.bash_login"; do
+    [[ -e "$rc_file" ]] || continue
     if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$rc_file" 2>/dev/null; then
       {
         printf '\n'
@@ -573,7 +644,8 @@ Expected Ubuntu user-local toolchain:
   $tool_prefix
 
 Try repairing it with:
-  $local_bin/micromamba install -y --no-rc --override-channels -p "$tool_prefix" -c conda-forge age ca-certificates curl fzf git jq neovim nodejs python ripgrep starship tmux wget zoxide zsh
+  $local_bin/micromamba install -y --no-rc --override-channels -p "$tool_prefix" -c conda-forge age ca-certificates curl fzf git jq nodejs python ripgrep starship tmux wget zoxide zsh
+  ./scripts/install-dev-tools.sh --no-reload-shell
   . "$HOME/.config/dotfiles/shell-env.sh"
 
 EOF
@@ -597,6 +669,7 @@ main() {
       ;;
     ubuntu)
       install_ubuntu_user_toolchain
+      install_ubuntu_neovim
       ;;
     *)
       printf 'Unsupported OS: %s. This script currently supports macOS and Ubuntu.\n' "$os" >&2

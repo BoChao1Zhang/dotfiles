@@ -106,8 +106,19 @@ EOF
   # shellcheck disable=SC1090
   . "$shell_env"
 
-  for rc_file in "$HOME/.zshrc" "$HOME/.zprofile"; do
+  for rc_file in "$HOME/.zshrc" "$HOME/.zprofile" "$HOME/.bashrc" "$HOME/.profile"; do
     [[ -e "$rc_file" ]] || touch "$rc_file"
+    if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$rc_file" 2>/dev/null; then
+      {
+        printf '\n'
+        printf '# Dotfiles tool environment\n'
+        printf '[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"\n'
+      } >> "$rc_file"
+    fi
+  done
+
+  for rc_file in "$HOME/.bash_profile" "$HOME/.bash_login"; do
+    [[ -e "$rc_file" ]] || continue
     if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$rc_file" 2>/dev/null; then
       {
         printf '\n'

@@ -31,12 +31,18 @@ require("lazy").setup({
     -- version = "*", -- try installing the latest stable version for plugins that support semver
   },
   install = { colorscheme = { "tokyonight", "habamax" } },
+  rocks = {
+    enabled = false,
+  },
   checker = {
     enabled = true, -- check for plugin updates periodically
     notify = false, -- notify on update
   }, -- automatically check for plugin updates
   performance = {
     rtp = {
+      paths = {
+        vim.fn.stdpath("data") .. "/site",
+      },
       -- disable some rtp plugins
       disabled_plugins = {
         "gzip",

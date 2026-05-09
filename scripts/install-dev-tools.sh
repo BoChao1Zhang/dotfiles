@@ -150,7 +150,26 @@ install_macos_packages() {
   local packages missing pkg
 
   ensure_homebrew
-  packages=(age ca-certificates curl fzf git jq neovim ripgrep starship tmux wget zoxide zsh)
+  packages=(
+    age
+    ast-grep
+    ca-certificates
+    curl
+    fd
+    fish
+    fzf
+    git
+    jq
+    lazygit
+    neovim
+    ripgrep
+    rust-analyzer
+    starship
+    tmux
+    wget
+    zoxide
+    zsh
+  )
   missing=()
 
   for pkg in "${packages[@]}"; do
@@ -168,14 +187,19 @@ install_ubuntu_user_toolchain() {
   local packages missing pkg micromamba micromamba_args
   packages=(
     age
+    ast-grep
     ca-certificates
     curl
+    fd-find
+    fish
     fzf
     git
     jq
+    lazygit
     nodejs
     python
     ripgrep
+    rust-analyzer
     starship
     tmux
     wget
@@ -186,8 +210,10 @@ install_ubuntu_user_toolchain() {
 
   install_micromamba
 
-  for pkg in age curl fzf git jq node npm python rg starship tmux wget zoxide zsh; do
+  for pkg in age ast-grep curl fd fish_indent fzf git jq lazygit node npm python rg rust-analyzer starship tmux wget zoxide zsh; do
     case "$pkg" in
+      fd) [[ -x "$tool_bin/fd" ]] || missing+=("fd-find") ;;
+      fish_indent) [[ -x "$tool_bin/fish_indent" ]] || missing+=("fish") ;;
       node) [[ -x "$tool_bin/node" ]] || missing+=("nodejs") ;;
       npm) [[ -x "$tool_bin/npm" ]] || missing+=("nodejs") ;;
       python) [[ -x "$tool_bin/python" ]] || missing+=("python") ;;
@@ -410,7 +436,7 @@ install_npm_tools() {
   [[ ! -s "$nvm_dir/nvm.sh" ]] || . "$nvm_dir/nvm.sh"
   has nvm && nvm use default >/dev/null 2>&1 || true
 
-  for entry in '@openai/codex:codex' '@anthropic-ai/claude-code:claude'; do
+  for entry in '@openai/codex:codex' '@anthropic-ai/claude-code:claude' 'neovim:neovim-node-host'; do
     package="${entry%%:*}"
     command_name="${entry##*:}"
     if has "$command_name" && ! truthy "$upgrade_tools"; then
@@ -644,7 +670,7 @@ Expected Ubuntu user-local toolchain:
   $tool_prefix
 
 Try repairing it with:
-  $local_bin/micromamba install -y --no-rc --override-channels -p "$tool_prefix" -c conda-forge age ca-certificates curl fzf git jq nodejs python ripgrep starship tmux wget zoxide zsh
+  $local_bin/micromamba install -y --no-rc --override-channels -p "$tool_prefix" -c conda-forge age ast-grep ca-certificates curl fd-find fish fzf git jq lazygit nodejs python ripgrep rust-analyzer starship tmux wget zoxide zsh
   ./scripts/install-dev-tools.sh --no-reload-shell
   . "$HOME/.config/dotfiles/shell-env.sh"
 

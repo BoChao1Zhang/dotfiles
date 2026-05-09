@@ -192,7 +192,7 @@ proxy_off() {
   unset all_proxy ALL_PROXY no_proxy NO_PROXY
 }
 
-if [[ "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
+if [[ "$OSTYPE" == darwin* || "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
   proxy_on
 fi
 

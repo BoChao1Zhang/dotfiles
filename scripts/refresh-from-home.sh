@@ -91,7 +91,10 @@ case ":$PATH:" in
   *) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
 [ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"}}egm;
-    s{^proxy_on$}{q{if [[ "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
+    s{if \[\[ "\$\{DOTFILES_AUTO_PROXY:-0\}" == "1" \]\]; then\n  proxy_on\nfi}{q{if [[ "$OSTYPE" == darwin* || "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
+  proxy_on
+fi}}eg;
+    s{^proxy_on$}{q{if [[ "$OSTYPE" == darwin* || "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
   proxy_on
 fi}}egm;
     s{^export PATH="/Applications/Xpra\.app/Contents/MacOS:\$PATH"$}{q{if [[ "$OSTYPE" == darwin* ]]; then

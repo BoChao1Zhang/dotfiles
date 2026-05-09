@@ -20,7 +20,7 @@ cd /path/to/dotfiles
 ./scripts/bootstrap.sh
 ```
 
-`install-dev-tools.sh` supports macOS and Ubuntu. It installs Node.js through nvm, Codex CLI, Claude Code, Neovim, tmux, zsh, age, and supporting command-line tools. On Ubuntu it installs Neovim from the official release archive, builds tmux from the latest release tarball, and builds zsh from the upstream release archive. It does not automatically change your login shell.
+`install-dev-tools.sh` supports macOS and Ubuntu. It installs Node.js through nvm, Codex CLI, Claude Code, Neovim, tmux, zsh, age, zoxide, starship, TPM plugins, and supporting command-line tools. On Ubuntu it installs Neovim from the official release archive, builds tmux from the latest release tarball, and builds zsh from the upstream release archive. It does not automatically change your login shell.
 
 To set zsh as the login shell explicitly:
 
@@ -38,6 +38,20 @@ When running as `root` but targeting another user:
 
 ```sh
 chezmoi apply
+```
+
+## GitHub Setup
+
+For push access, use SSH instead of GitHub password authentication:
+
+```sh
+./scripts/setup-github-ssh.sh
+```
+
+Add the printed public key to GitHub at <https://github.com/settings/keys>, then test:
+
+```sh
+ssh -T git@github.com
 ```
 
 ## Secrets
@@ -76,6 +90,8 @@ git status
 `scan-secrets.sh` exits with matches if it sees likely live tokens.
 
 `refresh-from-home.sh` also protects Claude/Codex skill scripts whose filenames start with `run_` or `once_` so chezmoi copies them as normal files instead of executing them during `apply`.
+
+The zsh template is defensive: Zim, zoxide, starship, local env hooks, and tmux aliases are loaded only when available. This keeps a fresh Ubuntu/root shell quiet while `install-dev-tools.sh` is still installing dependencies.
 
 After applying the zsh config, two helper commands are available:
 

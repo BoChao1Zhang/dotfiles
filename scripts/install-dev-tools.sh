@@ -128,7 +128,7 @@ ensure_homebrew() {
 install_macos_packages() {
   ensure_homebrew
   brew update
-  brew install age ca-certificates curl git neovim ripgrep tmux wget zsh
+  brew install age ca-certificates curl fzf git jq neovim ripgrep starship tmux wget zoxide zsh
 }
 
 install_ubuntu_packages() {
@@ -143,17 +143,58 @@ install_ubuntu_packages() {
     ca-certificates \
     curl \
     file \
+    fzf \
     git \
+    jq \
     libevent-dev \
     libncurses-dev \
     libncursesw5-dev \
     libpcre2-dev \
     ncurses-dev \
     pkg-config \
+    python3 \
     ripgrep \
     wget \
+    xclip \
+    xsel \
     xz-utils \
     zsh
+}
+
+install_starship() {
+  if has starship; then
+    return
+  fi
+
+  mkdir -p "$local_bin"
+  printf 'Installing starship prompt...\n'
+  curl -fsSL https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$local_bin"
+}
+
+install_zoxide() {
+  if has zoxide; then
+    return
+  fi
+
+  mkdir -p "$local_bin"
+  printf 'Installing zoxide...\n'
+  curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+}
+
+install_tmux_plugins() {
+  local tpm_dir
+  tpm_dir="$HOME/.tmux/plugins/tpm"
+
+  if [[ ! -d "$tpm_dir/.git" ]]; then
+    printf 'Installing TPM (Tmux Plugin Manager)...\n'
+    mkdir -p "$HOME/.tmux/plugins"
+    git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
+  fi
+
+  if [[ -x "$tpm_dir/bin/install_plugins" ]]; then
+    printf 'Installing tmux plugins...\n'
+    "$tpm_dir/bin/install_plugins" || true
+  fi
 }
 
 install_nvm_and_node() {
@@ -393,6 +434,9 @@ main() {
 
   install_nvm_and_node
   install_npm_tools
+  install_starship
+  install_zoxide
+  install_tmux_plugins
   print_versions
 
   if truthy "$set_default_shell"; then

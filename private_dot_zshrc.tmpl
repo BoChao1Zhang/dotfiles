@@ -200,7 +200,7 @@ fi
 
 [ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"
 
-# Hermes Agent — ensure ~/.local/bin is on PATH without shadowing the toolchain.
+# Hermes Agent - ensure ~/.local/bin is on PATH without shadowing the toolchain.
 case ":$PATH:" in
   *":$HOME/.local/bin:"*) ;;
   *) export PATH="$HOME/.local/bin:$PATH" ;;

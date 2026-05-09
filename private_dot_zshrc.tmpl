@@ -152,6 +152,7 @@ fi
 
 [ ! -f ~/.config/tmux/scripts/tmux_aliases.sh ] || source ~/.config/tmux/scripts/tmux_aliases.sh
 
+[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"
 [ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"
 
 # Hermes Agent — ensure ~/.local/bin is on PATH

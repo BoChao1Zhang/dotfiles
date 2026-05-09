@@ -20,7 +20,7 @@ cd /path/to/dotfiles
 ./scripts/bootstrap.sh
 ```
 
-`install-dev-tools.sh` supports macOS and Ubuntu. It installs Node.js through nvm, Codex CLI, Claude Code, Neovim, tmux, zsh, age, zoxide, starship, TPM plugins, and supporting command-line tools. On Ubuntu it installs Neovim from the official release archive, builds tmux from the latest release tarball, and builds zsh from the upstream release archive. It does not automatically change your login shell.
+`install-dev-tools.sh` supports macOS and Ubuntu. It installs Node.js through nvm when a suitable Node.js is not already available, Codex CLI, Claude Code, Neovim, tmux, zsh, age, zoxide, starship, TPM plugins, and supporting command-line tools. It is idempotent by default: existing tools are skipped, Homebrew/apt only install missing packages, npm CLIs are installed only when their commands are missing, and Ubuntu uses apt packages for Neovim/tmux/zsh instead of building them from source. Use `--upgrade` when you explicitly want to refresh already-installed tools. It does not automatically change your login shell.
 
 To set zsh as the login shell explicitly:
 
@@ -39,6 +39,8 @@ When running as `root` but targeting another user:
 ```sh
 chezmoi apply
 ```
+
+Both `install-dev-tools.sh` and `bootstrap.sh` write `~/.config/dotfiles/shell-env.sh` and connect it to zsh startup files so `~/.local/bin` tools are available as plain commands. In an interactive terminal, `install-dev-tools.sh` starts a fresh zsh login shell at the end; pass `--no-reload-shell` to disable that behavior.
 
 ## GitHub Setup
 

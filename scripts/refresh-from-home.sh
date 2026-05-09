@@ -34,6 +34,28 @@ remove_tree_symlinks() {
   find "$dst" -type l -delete
 }
 
+sanitize_zprofile() {
+  local src="$src_home/.zprofile"
+  local dst="$repo_root/dot_zprofile"
+  [[ -f "$src" ]] || return 0
+  copy_file "$src" "$dst"
+
+  perl -0pi -e '
+    s{^eval "\$\(/opt/homebrew/bin/brew shellenv\)"$}{q{if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi}}egm;
+  ' "$dst"
+
+  if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$dst"; then
+    {
+      printf '\n'
+      printf '[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"\n'
+    } >> "$dst"
+  fi
+}
+
 sanitize_zshrc() {
   local src="$src_home/.zshrc"
   local dst="$repo_root/private_dot_zshrc.tmpl"
@@ -55,7 +77,8 @@ fi}}egm;
     s{^eval "\$\(starship init zsh\)"$}{q{if (( ${+commands[starship]} )); then
   eval "$(starship init zsh)"
 fi}}egm;
-    s{^\Q. "$HOME/.local/bin/env"\E$}{q{[ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"}}egm;
+    s{^\Q. "$HOME/.local/bin/env"\E$}{q{[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"
+[ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"}}egm;
     s{^proxy_on$}{q{if [[ "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
   proxy_on
 fi}}egm;
@@ -72,6 +95,13 @@ fi}}egm;
 fi}}eg;
     s{^source \$\{ZIM_HOME\}/init\.zsh$}{q{[[ ! -r ${ZIM_HOME}/init.zsh ]] || source ${ZIM_HOME}/init.zsh}}egm;
   ' "$dst"
+
+  if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$dst"; then
+    {
+      printf '\n'
+      printf '[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"\n'
+    } >> "$dst"
+  fi
 }
 
 ensure_zsh_helpers() {
@@ -267,7 +297,7 @@ need rsync
 need sed
 need find
 
-copy_file "$src_home/.zprofile" "$repo_root/dot_zprofile"
+sanitize_zprofile
 copy_file "$src_home/.tmux.conf" "$repo_root/dot_tmux.conf"
 sanitize_zshrc
 

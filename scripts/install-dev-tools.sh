@@ -6,6 +6,8 @@ nvm_dir="${NVM_DIR:-$HOME/.nvm}"
 set_default_shell="${SET_DEFAULT_ZSH:-0}"
 target_user="${TARGET_USER:-}"
 zsh_path_override="${ZSH_PATH:-}"
+upgrade_tools="${DOTFILES_UPGRADE_TOOLS:-0}"
+reload_shell="${DOTFILES_RELOAD_SHELL:-auto}"
 
 usage() {
   cat <<'EOF'
@@ -16,12 +18,17 @@ Options:
   --target-user USER      User whose login shell should be changed.
                           Defaults to SUDO_USER when running via sudo, otherwise current user.
   --zsh-path PATH         Explicit zsh path to set as login shell.
+  --upgrade               Upgrade tools that are already installed.
+  --no-reload-shell       Do not exec a fresh zsh login shell at the end.
   -h, --help              Show this help.
 
 Environment:
   SET_DEFAULT_ZSH=1       Same as --set-default-shell.
   TARGET_USER=USER        Same as --target-user.
   ZSH_PATH=PATH           Same as --zsh-path.
+  DOTFILES_UPGRADE_TOOLS=1
+                          Same as --upgrade.
+  DOTFILES_RELOAD_SHELL=0 Disable the final interactive zsh reload.
   LOCAL_BIN=PATH          Defaults to ~/.local/bin.
   NVM_DIR=PATH            Defaults to ~/.nvm.
 EOF
@@ -48,6 +55,12 @@ parse_args() {
           exit 1
         }
         zsh_path_override="$1"
+        ;;
+      --upgrade)
+        upgrade_tools=1
+        ;;
+      --no-reload-shell)
+        reload_shell=0
         ;;
       -h | --help)
         usage
@@ -126,43 +139,60 @@ ensure_homebrew() {
 }
 
 install_macos_packages() {
+  local packages missing pkg
+
   ensure_homebrew
-  brew update
-  brew install age ca-certificates curl fzf git jq neovim ripgrep starship tmux wget zoxide zsh
+  packages=(age ca-certificates curl fzf git jq neovim ripgrep starship tmux wget zoxide zsh)
+  missing=()
+
+  for pkg in "${packages[@]}"; do
+    brew list --formula "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+  done
+
+  if ((${#missing[@]})); then
+    HOMEBREW_NO_AUTO_UPDATE="${HOMEBREW_NO_AUTO_UPDATE:-1}" brew install "${missing[@]}"
+  else
+    printf 'Homebrew packages already installed.\n'
+  fi
 }
 
 install_ubuntu_packages() {
-  as_root apt-get update
-  as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  local packages missing pkg
+  packages=(
     age \
-    autoconf \
-    automake \
-    bison \
-    build-essential \
-    byacc \
     ca-certificates \
     curl \
     file \
     fzf \
     git \
     jq \
-    libevent-dev \
-    libncurses-dev \
-    libncursesw5-dev \
-    libpcre2-dev \
-    ncurses-dev \
-    pkg-config \
+    neovim \
     python3 \
     ripgrep \
+    tmux \
     wget \
     xclip \
     xsel \
-    xz-utils \
+    zoxide \
     zsh
+  )
+  missing=()
+
+  for pkg in "${packages[@]}"; do
+    dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q 'install ok installed' || missing+=("$pkg")
+  done
+
+  if ((${#missing[@]})); then
+    as_root apt-get update
+    as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
+  else
+    printf 'Ubuntu packages already installed.\n'
+  fi
 }
 
 install_starship() {
-  if has starship; then
+  if has starship && ! truthy "$upgrade_tools"; then
+    printf 'starship already installed.\n'
     return
   fi
 
@@ -172,7 +202,8 @@ install_starship() {
 }
 
 install_zoxide() {
-  if has zoxide; then
+  if has zoxide && ! truthy "$upgrade_tools"; then
+    printf 'zoxide already installed.\n'
     return
   fi
 
@@ -182,13 +213,23 @@ install_zoxide() {
 }
 
 install_tmux_plugins() {
-  local tpm_dir
+  local tpm_dir plugin missing_plugins
   tpm_dir="$HOME/.tmux/plugins/tpm"
 
   if [[ ! -d "$tpm_dir/.git" ]]; then
     printf 'Installing TPM (Tmux Plugin Manager)...\n'
     mkdir -p "$HOME/.tmux/plugins"
     git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
+  fi
+
+  missing_plugins=0
+  for plugin in tmux-sensible tmux-yank tmux-open tmux-copycat tmux-which-key tmux-mode-indicator tmux.nvim; do
+    [[ -d "$HOME/.tmux/plugins/$plugin" ]] || missing_plugins=1
+  done
+
+  if [[ "$missing_plugins" == 0 ]] && ! truthy "$upgrade_tools"; then
+    printf 'tmux plugins already installed.\n'
+    return
   fi
 
   if [[ -x "$tpm_dir/bin/install_plugins" ]]; then
@@ -198,8 +239,16 @@ install_tmux_plugins() {
 }
 
 install_nvm_and_node() {
-  local nvm_tag tmp installer
+  local nvm_tag tmp installer node_major default_version
   mkdir -p "$local_bin"
+
+  if has node && has npm && ! truthy "$upgrade_tools"; then
+    node_major="$(node -p 'Number(process.versions.node.split(".")[0])' 2>/dev/null || printf 0)"
+    if [[ "$node_major" -ge 20 ]]; then
+      printf 'Node.js already installed: %s\n' "$(node --version)"
+      return
+    fi
+  fi
 
   if [[ ! -s "$nvm_dir/nvm.sh" ]]; then
     nvm_tag="$(github_latest_tag nvm-sh/nvm)"
@@ -213,84 +262,34 @@ install_nvm_and_node() {
 
   # shellcheck disable=SC1091
   . "$nvm_dir/nvm.sh"
-  nvm install node --latest-npm
-  nvm alias default node
+
+  default_version="$(nvm version default 2>/dev/null || printf N/A)"
+  if [[ "$default_version" != "N/A" ]] && ! truthy "$upgrade_tools"; then
+    nvm use default
+    return
+  fi
+
+  nvm install --lts --latest-npm
+  nvm alias default 'lts/*'
   nvm use default
 }
 
 install_npm_tools() {
+  local entry package command_name
+
   # shellcheck disable=SC1091
-  . "$nvm_dir/nvm.sh"
-  nvm use default
-  npm install -g @openai/codex@latest @anthropic-ai/claude-code@latest
-}
+  [[ ! -s "$nvm_dir/nvm.sh" ]] || . "$nvm_dir/nvm.sh"
+  has nvm && nvm use default >/dev/null 2>&1 || true
 
-install_neovim_linux_latest() {
-  local machine nvim_arch archive tmp
-  machine="$(uname -m)"
-
-  case "$machine" in
-    x86_64 | amd64) nvim_arch="x86_64" ;;
-    arm64 | aarch64) nvim_arch="arm64" ;;
-    *)
-      printf 'Unsupported Linux architecture for Neovim prebuilt archive: %s\n' "$machine" >&2
-      return 1
-      ;;
-  esac
-
-  tmp="$(mktemp -d)"
-  archive="$tmp/nvim-linux-${nvim_arch}.tar.gz"
-
-  printf 'Installing latest stable Neovim prebuilt archive for Linux %s...\n' "$nvim_arch"
-  curl -fL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${nvim_arch}.tar.gz" -o "$archive"
-  as_root rm -rf "/opt/nvim-linux-${nvim_arch}"
-  as_root tar -C /opt -xzf "$archive"
-  as_root ln -sf "/opt/nvim-linux-${nvim_arch}/bin/nvim" /usr/local/bin/nvim
-  rm -rf "$tmp"
-}
-
-install_tmux_linux_latest() {
-  local tag version tmp archive jobs
-  tag="$(github_latest_tag tmux/tmux)"
-  version="${tag#v}"
-  tmp="$(mktemp -d)"
-  archive="$tmp/tmux-${version}.tar.gz"
-  jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf 2)"
-
-  printf 'Building tmux %s from release tarball...\n' "$version"
-  curl -fL "https://github.com/tmux/tmux/releases/download/${tag}/tmux-${version}.tar.gz" -o "$archive"
-  tar -C "$tmp" -xzf "$archive"
-  (
-    cd "$tmp/tmux-${version}"
-    ./configure --prefix=/usr/local
-    make -j "$jobs"
-    as_root make install
-  )
-  rm -rf "$tmp"
-}
-
-install_zsh_linux_latest() {
-  local tmp archive src_dir jobs
-  tmp="$(mktemp -d)"
-  archive="$tmp/zsh-latest.tar.xz"
-  jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf 2)"
-
-  printf 'Building latest zsh from upstream release archive...\n'
-  curl -fL "https://sourceforge.net/projects/zsh/files/latest/download" -o "$archive"
-  src_dir="$(tar -tf "$archive" | sed -n '1p' | cut -d / -f 1)"
-  tar -C "$tmp" -xf "$archive"
-  (
-    cd "$tmp/$src_dir"
-    ./configure --prefix=/usr/local --enable-multibyte
-    make -j "$jobs"
-    as_root make install
-  )
-
-  if ! grep -qx '/usr/local/bin/zsh' /etc/shells 2>/dev/null; then
-    printf '/usr/local/bin/zsh\n' | as_root tee -a /etc/shells >/dev/null
-  fi
-
-  rm -rf "$tmp"
+  for entry in '@openai/codex:codex' '@anthropic-ai/claude-code:claude'; do
+    package="${entry%%:*}"
+    command_name="${entry##*:}"
+    if has "$command_name" && ! truthy "$upgrade_tools"; then
+      printf '%s already installed.\n' "$command_name"
+      continue
+    fi
+    npm install -g "${package}@latest"
+  done
 }
 
 truthy() {
@@ -298,6 +297,38 @@ truthy() {
     1 | true | TRUE | yes | YES | y | Y | on | ON) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+write_shell_env() {
+  local env_file rc_file
+  env_file="$HOME/.config/dotfiles/shell-env.sh"
+
+  mkdir -p -- "$(dirname -- "$env_file")" "$local_bin"
+  cat > "$env_file" <<EOF
+# Generated by dotfiles. Safe to source from zsh, bash, and scripts.
+case ":\$PATH:" in
+  *":$local_bin:"*) ;;
+  *) export PATH="$local_bin:\$PATH" ;;
+esac
+
+export NVM_DIR="$nvm_dir"
+[ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
+[ -s "\$NVM_DIR/bash_completion" ] && . "\$NVM_DIR/bash_completion"
+EOF
+
+  # shellcheck disable=SC1090
+  . "$env_file"
+
+  for rc_file in "$HOME/.zshrc" "$HOME/.zprofile"; do
+    [[ -e "$rc_file" ]] || touch "$rc_file"
+    if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$rc_file" 2>/dev/null; then
+      {
+        printf '\n'
+        printf '# Dotfiles tool environment\n'
+        printf '[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"\n'
+      } >> "$rc_file"
+    fi
+  done
 }
 
 resolve_target_user() {
@@ -397,6 +428,22 @@ set_zsh_as_default_shell() {
   printf 'Default shell updated. Start a new login session to use it.\n'
 }
 
+reload_interactive_shell() {
+  local os shell_path
+  os="$1"
+
+  if [[ "$reload_shell" == "auto" ]]; then
+    [[ -t 0 && -t 1 && -z "${CI:-}" ]] || return
+  elif ! truthy "$reload_shell"; then
+    return
+  fi
+
+  shell_path="$(resolve_zsh_path "$os")"
+  printf '\nStarting a fresh zsh login shell with the updated tool environment...\n'
+  printf 'Exit that shell to return to the previous session.\n'
+  exec "$shell_path" -l
+}
+
 print_versions() {
   printf '\nInstalled versions:\n'
   node --version 2>/dev/null || true
@@ -415,6 +462,7 @@ main() {
   os="$(detect_os)"
 
   export PATH="$local_bin:$PATH"
+  write_shell_env
 
   case "$os" in
     macos)
@@ -422,9 +470,6 @@ main() {
       ;;
     ubuntu)
       install_ubuntu_packages
-      install_neovim_linux_latest
-      install_tmux_linux_latest
-      install_zsh_linux_latest
       ;;
     *)
       printf 'Unsupported OS: %s. This script currently supports macOS and Ubuntu.\n' "$os" >&2
@@ -443,12 +488,12 @@ main() {
     set_zsh_as_default_shell "$os"
   fi
 
-  printf '\nDone. Restart your shell, or run:\n'
-  printf '  export PATH="%s:$PATH"\n' "$local_bin"
-  printf '  export NVM_DIR="%s"\n' "$nvm_dir"
-  printf '  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"\n'
+  printf '\nDone. Tool environment has been written to:\n'
+  printf '  %s\n' "$HOME/.config/dotfiles/shell-env.sh"
+  printf 'New zsh sessions will source it automatically. This installer also sourced it for its own follow-up steps.\n'
   printf '\nTo set zsh as your login shell during install, rerun with:\n'
   printf '  ./scripts/install-dev-tools.sh --set-default-shell\n'
+  reload_interactive_shell "$os"
 }
 
 main "$@"

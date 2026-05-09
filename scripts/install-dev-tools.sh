@@ -388,7 +388,9 @@ export DOTFILES_TOOL_PREFIX="$tool_prefix"
 export MAMBA_ROOT_PREFIX="$mamba_root"
 export NVM_DIR="$nvm_dir"
 [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
-[ -s "\$NVM_DIR/bash_completion" ] && . "\$NVM_DIR/bash_completion"
+if [ -n "\${BASH_VERSION:-}" ] && [ -s "\$NVM_DIR/bash_completion" ]; then
+  . "\$NVM_DIR/bash_completion"
+fi
 EOF
 
   # shellcheck disable=SC1090
@@ -403,6 +405,22 @@ EOF
         printf '[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"\n'
       } >> "$rc_file"
     fi
+  done
+}
+
+repair_zsh_compinit_permissions() {
+  local dir
+  for dir in \
+    "$HOME" \
+    "$HOME/.zim" \
+    "$tool_prefix/share/zsh"; do
+    [[ -d "$dir" ]] || continue
+    command chmod go-w "$dir" 2>/dev/null || true
+  done
+
+  for dir in "$HOME/.zim" "$tool_prefix/share/zsh"; do
+    [[ -d "$dir" ]] || continue
+    find "$dir" -type d -exec chmod go-w {} + 2>/dev/null || true
   done
 }
 
@@ -556,6 +574,7 @@ main() {
 
   install_npm_tools
   install_tmux_plugins
+  repair_zsh_compinit_permissions
   print_versions
 
   if truthy "$set_default_shell"; then

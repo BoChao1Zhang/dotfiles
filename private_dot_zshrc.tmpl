@@ -31,6 +31,36 @@ WORDCHARS=${WORDCHARS//[\/]}
 
 setopt AUTO_CD
 
+#
+# User-local toolchain
+#
+
+[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"
+
+_dotfiles_prepend_fpath_dir() {
+  local dir="$1"
+  [[ -d "$dir" ]] || return
+  fpath=("$dir" ${fpath:#"$dir"})
+}
+
+for _dotfiles_zsh_prefix in \
+  "${DOTFILES_TOOL_PREFIX:-}" \
+  "${CONDA_PREFIX:-}" \
+  "$HOME/.local/share/dotfiles/toolchain"; do
+  [[ -n "$_dotfiles_zsh_prefix" ]] || continue
+  _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_prefix/share/zsh/site-functions"
+  _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_prefix/share/zsh/functions"
+  _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_prefix/share/zsh/$ZSH_VERSION/functions"
+  for _dotfiles_zsh_dir in \
+    "$_dotfiles_zsh_prefix"/share/zsh/functions/*(N-/) \
+    "$_dotfiles_zsh_prefix"/share/zsh/$ZSH_VERSION/functions/*(N-/) \
+    "$_dotfiles_zsh_prefix"/share/zsh/*/functions(N-/) \
+    "$_dotfiles_zsh_prefix"/share/zsh/*/functions/*(N-/); do
+    _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_dir"
+  done
+done
+unset _dotfiles_zsh_prefix _dotfiles_zsh_dir
+
 # --------------------
 # Module configuration
 # --------------------
@@ -51,6 +81,19 @@ zstyle ':completion:*' menu select
 # ------------------
 
 ZIM_HOME=${ZDOTDIR:-${HOME}}/.zim
+
+_dotfiles_repair_zsh_compinit_permissions() {
+  local dir
+  for dir in "$HOME" "$ZIM_HOME" "${DOTFILES_TOOL_PREFIX:-}/share/zsh"; do
+    [[ -d "$dir" ]] || continue
+    if [[ "$dir" == "$HOME" ]]; then
+      command chmod go-w "$dir" 2>/dev/null || true
+    else
+      command chmod -R go-w "$dir" 2>/dev/null || true
+    fi
+  done
+}
+
 # Download zimfw plugin manager if missing.
 if [[ ! -e ${ZIM_HOME}/zimfw.zsh ]]; then
   if (( ${+commands[curl]} )); then
@@ -65,6 +108,7 @@ fi
 if [[ -r ${ZIM_HOME}/zimfw.zsh && ! ${ZIM_HOME}/init.zsh -nt ${ZIM_CONFIG_FILE:-${ZDOTDIR:-${HOME}}/.zimrc} ]]; then
   source ${ZIM_HOME}/zimfw.zsh init || true
 fi
+_dotfiles_repair_zsh_compinit_permissions
 # Initialize modules.
 [[ ! -r ${ZIM_HOME}/init.zsh ]] || source ${ZIM_HOME}/init.zsh
 
@@ -93,7 +137,9 @@ export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+if [[ -n "${BASH_VERSION:-}" && -s "$NVM_DIR/bash_completion" ]]; then
+  . "$NVM_DIR/bash_completion"
+fi
 
 if (( ${+commands[zoxide]} )); then
   eval "$(zoxide init zsh)"
@@ -152,7 +198,6 @@ fi
 
 [ ! -f ~/.config/tmux/scripts/tmux_aliases.sh ] || source ~/.config/tmux/scripts/tmux_aliases.sh
 
-[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"
 [ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"
 
 # Hermes Agent — ensure ~/.local/bin is on PATH

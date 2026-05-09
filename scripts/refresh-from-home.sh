@@ -77,6 +77,12 @@ fi}}egm;
     s{^eval "\$\(starship init zsh\)"$}{q{if (( ${+commands[starship]} )); then
   eval "$(starship init zsh)"
 fi}}egm;
+    s{^\[ -s "\$NVM_DIR/bash_completion" \] && \\\.? "\$NVM_DIR/bash_completion"$}{q{if [[ -n "${BASH_VERSION:-}" && -s "$NVM_DIR/bash_completion" ]]; then
+  . "$NVM_DIR/bash_completion"
+fi}}egm;
+    s{^\[ -s "\$NVM_DIR/bash_completion" \] && \. "\$NVM_DIR/bash_completion"$}{q{if [[ -n "${BASH_VERSION:-}" && -s "$NVM_DIR/bash_completion" ]]; then
+  . "$NVM_DIR/bash_completion"
+fi}}egm;
     s{^\Q. "$HOME/.local/bin/env"\E$}{q{[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"
 [ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"}}egm;
     s{^proxy_on$}{q{if [[ "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
@@ -95,6 +101,63 @@ fi}}egm;
 fi}}eg;
     s{^source \$\{ZIM_HOME\}/init\.zsh$}{q{[[ ! -r ${ZIM_HOME}/init.zsh ]] || source ${ZIM_HOME}/init.zsh}}egm;
   ' "$dst"
+
+  if ! grep -Fq '_dotfiles_prepend_fpath_dir()' "$dst"; then
+    perl -0pi -e 's{(\n# --------------------\n# Module configuration)}{q{
+
+#
+# User-local toolchain
+#
+
+[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"
+
+_dotfiles_prepend_fpath_dir() {
+  local dir="$1"
+  [[ -d "$dir" ]] || return
+  fpath=("$dir" ${fpath:#"$dir"})
+}
+
+for _dotfiles_zsh_prefix in \
+  "${DOTFILES_TOOL_PREFIX:-}" \
+  "${CONDA_PREFIX:-}" \
+  "$HOME/.local/share/dotfiles/toolchain"; do
+  [[ -n "$_dotfiles_zsh_prefix" ]] || continue
+  _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_prefix/share/zsh/site-functions"
+  _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_prefix/share/zsh/functions"
+  _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_prefix/share/zsh/$ZSH_VERSION/functions"
+  for _dotfiles_zsh_dir in \
+    "$_dotfiles_zsh_prefix"/share/zsh/functions/*(N-/) \
+    "$_dotfiles_zsh_prefix"/share/zsh/$ZSH_VERSION/functions/*(N-/) \
+    "$_dotfiles_zsh_prefix"/share/zsh/*/functions(N-/) \
+    "$_dotfiles_zsh_prefix"/share/zsh/*/functions/*(N-/); do
+    _dotfiles_prepend_fpath_dir "$_dotfiles_zsh_dir"
+  done
+done
+unset _dotfiles_zsh_prefix _dotfiles_zsh_dir
+} . $1}e' "$dst"
+  fi
+
+  if ! grep -Fq '_dotfiles_repair_zsh_compinit_permissions()' "$dst"; then
+    perl -0pi -e 's{(ZIM_HOME=\$\{ZDOTDIR:-\$\{HOME\}\}/\.zim\n)}{$1 . q{
+_dotfiles_repair_zsh_compinit_permissions() {
+  local dir
+  for dir in "$HOME" "$ZIM_HOME" "${DOTFILES_TOOL_PREFIX:-}/share/zsh"; do
+    [[ -d "$dir" ]] || continue
+    if [[ "$dir" == "$HOME" ]]; then
+      command chmod go-w "$dir" 2>/dev/null || true
+    else
+      command chmod -R go-w "$dir" 2>/dev/null || true
+    fi
+  done
+}
+}}e' "$dst"
+  fi
+
+  if grep -Fq '_dotfiles_repair_zsh_compinit_permissions()' "$dst" &&
+     ! grep -Fq '_dotfiles_repair_zsh_compinit_permissions
+# Initialize modules.' "$dst"; then
+    perl -0pi -e 's{(\n# Initialize modules\.)}{\n_dotfiles_repair_zsh_compinit_permissions$1}' "$dst"
+  fi
 
   if ! grep -Fq '$HOME/.config/dotfiles/shell-env.sh' "$dst"; then
     {

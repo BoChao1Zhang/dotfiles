@@ -98,7 +98,9 @@ export DOTFILES_TOOL_PREFIX="$tool_prefix"
 export MAMBA_ROOT_PREFIX="\${MAMBA_ROOT_PREFIX:-$HOME/.local/share/micromamba}"
 export NVM_DIR="\${NVM_DIR:-$HOME/.nvm}"
 [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
-[ -s "\$NVM_DIR/bash_completion" ] && . "\$NVM_DIR/bash_completion"
+if [ -n "\${BASH_VERSION:-}" ] && [ -s "\$NVM_DIR/bash_completion" ]; then
+  . "\$NVM_DIR/bash_completion"
+fi
 EOF
 
   # shellcheck disable=SC1090

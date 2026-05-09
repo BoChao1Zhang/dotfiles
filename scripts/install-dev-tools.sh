@@ -163,7 +163,7 @@ install_macos_packages() {
 }
 
 install_ubuntu_user_toolchain() {
-  local packages missing pkg micromamba
+  local packages missing pkg micromamba micromamba_args
   packages=(
     age
     ca-certificates
@@ -198,10 +198,11 @@ install_ubuntu_user_toolchain() {
 
   if ((${#missing[@]})) || truthy "$upgrade_tools"; then
     micromamba="$local_bin/micromamba"
+    micromamba_args=(-y --no-rc --override-channels -p "$tool_prefix" -c conda-forge)
     if [[ -d "$tool_prefix/conda-meta" ]]; then
-      MAMBA_ROOT_PREFIX="$mamba_root" "$micromamba" install -y -p "$tool_prefix" -c conda-forge "${packages[@]}"
+      MAMBA_ROOT_PREFIX="$mamba_root" "$micromamba" install "${micromamba_args[@]}" "${packages[@]}"
     else
-      MAMBA_ROOT_PREFIX="$mamba_root" "$micromamba" create -y -p "$tool_prefix" -c conda-forge "${packages[@]}"
+      MAMBA_ROOT_PREFIX="$mamba_root" "$micromamba" create "${micromamba_args[@]}" "${packages[@]}"
     fi
     hash -r
     return

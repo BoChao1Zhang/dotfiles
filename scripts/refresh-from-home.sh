@@ -176,6 +176,27 @@ encode_hidden_files() {
     done
 }
 
+encode_literal_skill_scripts() {
+  local root
+
+  for root in "$repo_root/dot_claude/skills" "$repo_root/dot_codex/skills"; do
+    [[ -d "$root" ]] || continue
+    find "$root" -type f \( -name 'run_*' -o -name 'once_*' \) -print0 |
+      while IFS= read -r -d '' path; do
+        local dir base target
+        dir="$(dirname -- "$path")"
+        base="$(basename -- "$path")"
+        if [[ -x "$path" ]]; then
+          target="$dir/executable_literal_$base"
+        else
+          target="$dir/literal_$base"
+        fi
+        [[ "$path" == "$target" ]] && continue
+        mv -f -- "$path" "$target"
+      done
+  done
+}
+
 need perl
 need rsync
 need sed
@@ -247,6 +268,7 @@ copy_tree "$src_home/.codex/skills" "$repo_root/dot_codex/skills" \
   --exclude '.DS_Store'
 
 encode_hidden_files
+encode_literal_skill_scripts
 write_skill_manifest
 
 printf 'Refreshed chezmoi source at %s\n' "$repo_root"

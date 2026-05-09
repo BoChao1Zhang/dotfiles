@@ -75,6 +75,8 @@ git status
 
 `scan-secrets.sh` exits with matches if it sees likely live tokens.
 
+`refresh-from-home.sh` also protects Claude/Codex skill scripts whose filenames start with `run_` or `once_` so chezmoi copies them as normal files instead of executing them during `apply`.
+
 After applying the zsh config, two helper commands are available:
 
 ```sh

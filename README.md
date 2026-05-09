@@ -42,6 +42,13 @@ chezmoi apply
 
 Both `install-dev-tools.sh` and `bootstrap.sh` write `~/.config/dotfiles/shell-env.sh` and connect it to zsh startup files so the user-local toolchain and `~/.local/bin` tools are available as plain commands. In an interactive terminal, `install-dev-tools.sh` starts a fresh zsh login shell at the end; pass `--no-reload-shell` to disable that behavior.
 
+If a command such as `nvim` is missing on Ubuntu, repair the user-local toolchain with:
+
+```sh
+./scripts/install-dev-tools.sh --no-reload-shell
+. ~/.config/dotfiles/shell-env.sh
+```
+
 ## GitHub Setup
 
 For push access, use SSH instead of GitHub password authentication:

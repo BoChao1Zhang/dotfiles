@@ -550,6 +550,38 @@ print_versions() {
   micromamba --version 2>/dev/null | sed 's/^/micromamba /' || true
 }
 
+verify_installed_commands() {
+  local os cmd missing
+  os="$1"
+  missing=()
+
+  for cmd in node npm codex claude nvim tmux zsh age rg git jq fzf zoxide starship; do
+    command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+  done
+
+  if ((${#missing[@]} == 0)); then
+    return
+  fi
+
+  printf '\nMissing expected commands after install: %s\n' "${missing[*]}" >&2
+  printf 'Current PATH:\n  %s\n' "$PATH" >&2
+
+  if [[ "$os" == "ubuntu" ]]; then
+    cat >&2 <<EOF
+
+Expected Ubuntu user-local toolchain:
+  $tool_prefix
+
+Try repairing it with:
+  $local_bin/micromamba install -y --no-rc --override-channels -p "$tool_prefix" -c conda-forge age ca-certificates curl fzf git jq neovim nodejs python ripgrep starship tmux wget zoxide zsh
+  . "$HOME/.config/dotfiles/shell-env.sh"
+
+EOF
+  fi
+
+  return 1
+}
+
 main() {
   local os
   parse_args "$@"
@@ -576,6 +608,7 @@ main() {
   install_tmux_plugins
   repair_zsh_compinit_permissions
   print_versions
+  verify_installed_commands "$os"
 
   if truthy "$set_default_shell"; then
     set_zsh_as_default_shell "$os"

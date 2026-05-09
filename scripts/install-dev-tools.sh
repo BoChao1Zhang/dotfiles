@@ -247,6 +247,35 @@ install_micromamba() {
   hash -r
 }
 
+tmux_server_version_mismatch() {
+  local output
+  output="$(tmux ls 2>&1 >/dev/null || true)"
+  [[ "$output" == *"server version is too old for client"* ]]
+}
+
+print_tmux_server_mismatch_help() {
+  cat <<'EOF'
+
+Existing tmux server is older than the user-local tmux client.
+
+Non-destructive temporary workaround:
+  tmux -L dotfiles new -s test
+
+To make plain `tmux` use the new version, close or save old tmux sessions,
+then stop the old default server with the old client, for example:
+  /usr/bin/tmux ls
+  /usr/bin/tmux kill-server
+
+If /usr/bin/tmux is not the old client, find candidates with:
+  type -a tmux
+
+After stopping the old server:
+  hash -r
+  tmux new -s test
+
+EOF
+}
+
 install_tmux_plugins() {
   local tpm_dir plugin missing_plugins
   tpm_dir="$HOME/.tmux/plugins/tpm"
@@ -264,6 +293,11 @@ install_tmux_plugins() {
 
   if [[ "$missing_plugins" == 0 ]] && ! truthy "$upgrade_tools"; then
     printf 'tmux plugins already installed.\n'
+    return
+  fi
+
+  if has tmux && tmux_server_version_mismatch; then
+    print_tmux_server_mismatch_help
     return
   fi
 

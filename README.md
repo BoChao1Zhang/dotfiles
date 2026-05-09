@@ -95,6 +95,8 @@ git status
 
 The zsh template is defensive: Zim, zoxide, starship, local env hooks, and tmux aliases are loaded only when available. This keeps a fresh Ubuntu/root shell quiet while `install-dev-tools.sh` is still installing dependencies.
 
+If `tmux new` prints `server version is too old for client`, an older tmux server is still running on the default socket. Start a temporary new socket with `tmux -L dotfiles new -s test`, or close/save old sessions and stop the old server with the old client, usually `/usr/bin/tmux kill-server`; after that plain `tmux` will start the user-local version.
+
 After applying the zsh config, two helper commands are available:
 
 ```sh

@@ -26,7 +26,6 @@ return {
         "codelldb",
         "debugpy",
         "rust-analyzer",
-        "tree-sitter-cli",
         "typstyle",
       })
     end,

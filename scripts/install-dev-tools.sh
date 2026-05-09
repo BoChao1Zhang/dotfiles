@@ -165,6 +165,7 @@ install_macos_packages() {
     ripgrep
     rust-analyzer
     starship
+    tree-sitter
     tmux
     wget
     zoxide
@@ -190,7 +191,6 @@ install_ubuntu_user_toolchain() {
     ast-grep
     ca-certificates
     curl
-    fd-find
     fish
     fzf
     git
@@ -201,6 +201,7 @@ install_ubuntu_user_toolchain() {
     ripgrep
     rust-analyzer
     starship
+    tree-sitter-cli
     tmux
     wget
     zoxide
@@ -210,14 +211,14 @@ install_ubuntu_user_toolchain() {
 
   install_micromamba
 
-  for pkg in age ast-grep curl fd fish_indent fzf git jq lazygit node npm python rg rust-analyzer starship tmux wget zoxide zsh; do
+  for pkg in age ast-grep curl fish_indent fzf git jq lazygit node npm python rg rust-analyzer starship tree-sitter tmux wget zoxide zsh; do
     case "$pkg" in
-      fd) [[ -x "$tool_bin/fd" ]] || missing+=("fd-find") ;;
       fish_indent) [[ -x "$tool_bin/fish_indent" ]] || missing+=("fish") ;;
       node) [[ -x "$tool_bin/node" ]] || missing+=("nodejs") ;;
       npm) [[ -x "$tool_bin/npm" ]] || missing+=("nodejs") ;;
       python) [[ -x "$tool_bin/python" ]] || missing+=("python") ;;
       rg) [[ -x "$tool_bin/rg" ]] || missing+=("ripgrep") ;;
+      tree-sitter) [[ -x "$tool_bin/tree-sitter" ]] || missing+=("tree-sitter-cli") ;;
       *) [[ -x "$tool_bin/$pkg" ]] || missing+=("$pkg") ;;
     esac
   done
@@ -293,6 +294,54 @@ install_ubuntu_neovim() {
   rm -rf "$nvim_prefix"
   mv "${nvim_path%/bin/nvim}" "$nvim_prefix"
   ln -sfn "$nvim_prefix/bin/nvim" "$local_bin/nvim"
+  rm -rf "$tmp"
+  hash -r
+}
+
+install_ubuntu_fd() {
+  local tag arch asset url tmp archive fd_path
+
+  if [[ -x "$tool_bin/fd" || -x "$local_bin/fd" ]] && ! truthy "$upgrade_tools"; then
+    return
+  fi
+
+  case "$(uname -m)" in
+    x86_64 | amd64) arch="x86_64-unknown-linux-gnu" ;;
+    aarch64 | arm64) arch="aarch64-unknown-linux-gnu" ;;
+    *)
+      printf 'Unsupported Ubuntu architecture for official fd: %s\n' "$(uname -m)" >&2
+      exit 1
+      ;;
+  esac
+
+  tag="$(github_latest_tag sharkdp/fd)"
+  asset="fd-${tag}-${arch}.tar.gz"
+  url="https://github.com/sharkdp/fd/releases/download/${tag}/${asset}"
+  tmp="$(mktemp -d)"
+  archive="$tmp/fd.tar.gz"
+
+  mkdir -p "$local_bin"
+  printf 'Installing official fd %s from %s...\n' "$tag" "$asset"
+  if has curl; then
+    curl -fsSL "$url" -o "$archive"
+  elif has wget; then
+    wget -qO "$archive" "$url"
+  else
+    printf 'Official fd install needs curl or wget.\n' >&2
+    rm -rf "$tmp"
+    exit 1
+  fi
+
+  mkdir -p "$tmp/extract"
+  tar -xzf "$archive" -C "$tmp/extract"
+  fd_path="$(find "$tmp/extract" -mindepth 2 -maxdepth 4 -type f -name fd -print -quit)"
+  if [[ -z "$fd_path" || ! -x "$fd_path" ]]; then
+    printf 'Downloaded fd archive did not contain an executable fd.\n' >&2
+    rm -rf "$tmp"
+    exit 1
+  fi
+
+  install -m 0755 "$fd_path" "$local_bin/fd"
   rm -rf "$tmp"
   hash -r
 }
@@ -641,6 +690,8 @@ print_versions() {
   codex --version 2>/dev/null || true
   claude --version 2>/dev/null || true
   nvim --version 2>/dev/null | sed -n '1p' || true
+  fd --version 2>/dev/null | sed -n '1p' || true
+  tree-sitter --version 2>/dev/null | sed -n '1p' || true
   tmux -V 2>/dev/null || true
   zsh --version 2>/dev/null || true
   age --version 2>/dev/null | sed -n '1p' || true
@@ -652,7 +703,7 @@ verify_installed_commands() {
   os="$1"
   missing=()
 
-  for cmd in node npm codex claude nvim tmux zsh age rg git jq fzf zoxide starship; do
+  for cmd in node npm codex claude nvim fd tree-sitter tmux zsh age rg git jq fzf zoxide starship; do
     command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
   done
 
@@ -670,7 +721,7 @@ Expected Ubuntu user-local toolchain:
   $tool_prefix
 
 Try repairing it with:
-  $local_bin/micromamba install -y --no-rc --override-channels -p "$tool_prefix" -c conda-forge age ast-grep ca-certificates curl fd-find fish fzf git jq lazygit nodejs python ripgrep rust-analyzer starship tmux wget zoxide zsh
+  $local_bin/micromamba install -y --no-rc --override-channels -p "$tool_prefix" -c conda-forge age ast-grep ca-certificates curl fish fzf git jq lazygit nodejs python ripgrep rust-analyzer starship tree-sitter-cli tmux wget zoxide zsh
   ./scripts/install-dev-tools.sh --no-reload-shell
   . "$HOME/.config/dotfiles/shell-env.sh"
 
@@ -696,6 +747,7 @@ main() {
     ubuntu)
       install_ubuntu_user_toolchain
       install_ubuntu_neovim
+      install_ubuntu_fd
       ;;
     *)
       printf 'Unsupported OS: %s. This script currently supports macOS and Ubuntu.\n' "$os" >&2

@@ -41,6 +41,7 @@ Generated from this machine by `scripts/refresh-from-home.sh`.
 
 ## Codex Skills
 
+- .system
 - algorithmic-art
 - better-translate
 - cm-imagegen
@@ -60,4 +61,3 @@ Generated from this machine by `scripts/refresh-from-home.sh`.
 - siyuan-sisyphus-cli
 - skillful
 - skillify
-- .system

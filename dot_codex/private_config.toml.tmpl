@@ -27,10 +27,10 @@ args = ["-y", "@ankimcp/anki-mcp-server", "--stdio"]
 [mcp_servers.siyuan-sisyphus]
 type = "http"
 url = "http://127.0.0.1:36806/mcp"
-headers = { Authorization = "Bearer {{ env "SIYUAN_SISYPHUS_TOKEN" }}" }
+headers = { Authorization = "Bearer " }
 
 [mcp_servers.siyuan-sisyphus.http_headers]
-Authorization = "Bearer {{ env "SIYUAN_SISYPHUS_TOKEN" }}"
+Authorization = "Bearer "
 
 [mcp_servers.Grok-search]
 type = "stdio"

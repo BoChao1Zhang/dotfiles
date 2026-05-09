@@ -25,6 +25,7 @@ Generated from this machine by `scripts/refresh-from-home.sh`.
 - grill-me
 - jina-ai
 - just-cli
+- learning-prereqs
 - local-schedule
 - pdf
 - pptx
@@ -33,16 +34,30 @@ Generated from this machine by `scripts/refresh-from-home.sh`.
 - self-driven
 - show-image
 - side-topic
+- siyuan-sisyphus-cli
 - skill-creator
 - skillful
 - skillify
 
 ## Codex Skills
 
-- .system
+- algorithmic-art
+- better-translate
 - cm-imagegen
+- deepwiki
+- flashcards
+- grep-app
 - hatch-pet
+- jina-ai
 - jina-reader
+- learning-prereqs
 - pdf
 - playwright
+- re-read
+- review
+- self-driven
+- show-image
 - siyuan-sisyphus-cli
+- skillful
+- skillify
+- .system

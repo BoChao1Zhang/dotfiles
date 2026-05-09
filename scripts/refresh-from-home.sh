@@ -85,6 +85,12 @@ fi}}egm;
 fi}}egm;
     s{^\Q. "$HOME/.local/bin/env"\E$}{q{[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"
 [ ! -f "$HOME/.local/bin/env" ] || . "$HOME/.local/bin/env"}}egm;
+    s{^# Hermes Agent.*\nexport PATH="\$HOME/\.local/bin:\$PATH"$}{q{# Hermes Agent - ensure ~/.local/bin is on PATH without shadowing the toolchain.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+[ ! -f "$HOME/.config/dotfiles/shell-env.sh" ] || . "$HOME/.config/dotfiles/shell-env.sh"}}egm;
     s{^proxy_on$}{q{if [[ "${DOTFILES_AUTO_PROXY:-0}" == "1" ]]; then
   proxy_on
 fi}}egm;

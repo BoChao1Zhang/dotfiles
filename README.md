@@ -20,7 +20,7 @@ cd /path/to/dotfiles
 ./scripts/bootstrap.sh
 ```
 
-`install-dev-tools.sh` supports macOS and Ubuntu. On macOS it uses Homebrew plus nvm. On Ubuntu it does not use apt by default: it installs micromamba in `~/.local/bin`, creates a user-local conda-forge toolchain at `~/.local/share/dotfiles/toolchain` for Node.js, tmux, zsh, age, zoxide, starship, tree-sitter, LazyVim helper tools, and supporting command-line tools, and installs the official Neovim and fd releases into the user directory when needed. It is idempotent by default: existing tools are skipped and npm CLIs are installed only when their commands are missing. Use `--upgrade` when you explicitly want to refresh already-installed tools. It does not automatically change your login shell.
+`install-dev-tools.sh` supports macOS and Ubuntu. On macOS it uses Homebrew plus nvm. On Ubuntu it does not use apt by default: it installs micromamba in `~/.local/bin`, creates a user-local conda-forge toolchain at `~/.local/share/dotfiles/toolchain` for Node.js, Neovim, tmux, zsh, age, zoxide, starship, tree-sitter, LazyVim helper tools, and supporting command-line tools, and installs the official fd release into the user directory when needed. The conda-forge Neovim build is preferred on Ubuntu so older glibc systems do not get stuck on upstream release binaries. It is idempotent by default: existing tools are skipped and npm CLIs are installed only when their commands are missing. Use `--upgrade` when you explicitly want to refresh already-installed tools. It does not automatically change your login shell.
 
 To set zsh as the login shell explicitly:
 
